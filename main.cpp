@@ -2,7 +2,7 @@
 #include "N5110.h"
 #include "arm_math.h"   //https://os.mbed.com/teams/mbed-official/code/mbed-dsp/
 
-#define SAMPLES 1024                           //note that the sample taken from the input signal will be reduced by half 
+#define SAMPLES 2048                           //note that the sample taken from the input signal will be reduced by half 
 #define NUMBER_OF_OUTPUT_FREQUENCIES SAMPLES/2
 #define SAMPLING_FREQUENCY 46875                //sample frequency is 48kHz, however realistically this would around 46.8kHz
 #define NUMBER_OF_BANDS 10
@@ -27,7 +27,7 @@ void drawWaveform();
 
 int main(){
     lcd.init(LPH7366_1);
-    sampleTimer.attach(&sampleTimer_isr, 1ms);
+    sampleTimer.attach(&sampleTimer_isr, 500us);
     arm_rfft_fast_init_f32(&fft_handler, SAMPLES);
 
     while(1){
@@ -39,7 +39,7 @@ int main(){
             FFT_inputBuffer[bufferPtr] = signal.read(); //range 0-1
 
             //once all samples have been taken, pass to FFT()
-            if(bufferPtr == SAMPLES){
+            if(bufferPtr > SAMPLES){
                 FFT();
 
                 //display frequency values on lcd
@@ -77,7 +77,7 @@ void FFT(){
     /*Calculate absolute values of the complex output of the arm_rfft_fast_f32 function,
     * before converting them into decibles (dB). This will reduce the number of elements from 2048 to 1024
     * by removing the imaginary part. */
-    for(int i = 0; i < 1024; i = i + 2){
+    for(int i = 0; i <= SAMPLES; i = i + 2){
         frequencies[frequencyPoint] = (int)(20*log10f(complexABS(FFT_outputBuffer[i], FFT_outputBuffer[i+1])))-offset;
     
         if(frequencies[frequencyPoint] < 0){
@@ -116,7 +116,6 @@ float complexABS(float realPart, float imagPart){
 void drawWaveform(){
     int barWidth = 80/NUMBER_OF_BANDS;  //width of each wavelength band display
     int barHeight[NUMBER_OF_BANDS] = {0};
-    //int barHeight[NUMBER_OF_BANDS] = {10, 25, 39, 25, 5, 20, 30, 12, 36, 40};
 
     //calculate the height of each bar indicator
     for(int i = 1; i <= sizeof(outarray); i++){
